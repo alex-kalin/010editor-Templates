@@ -1,0 +1,121 @@
+//------------------------------------------------
+//--- 010 Editor v8.0.1 Binary Template
+//
+//      File: UefiVar.bt
+//   Authors: Kalinin Alexey
+//   Version: 0.1
+//   Purpose: Uefi variable store parser template
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//   0.1    2019-05-14 Initial Revision
+//------------------------------------------------
+
+///
+/// 128 bit buffer containing a unique identifier value.
+/// Unless otherwise specified, aligned on a 64 bit boundary.
+///
+typedef struct {
+  UINT32  Data1;
+  UINT16  Data2;
+  UINT16  Data3;
+  UBYTE   Data4[8];
+} EFI_GUID;
+
+
+///
+/// Variable Store region header.
+///
+typedef struct {
+  ///
+  /// Variable store region signature.
+  ///
+  EFI_GUID  Signature;
+  ///
+  /// Size of entire variable store, 
+  /// including size of variable store header but not including the size of FvHeader.
+  ///
+  UINT32  Size;
+  ///
+  /// Variable region format state.
+  ///
+  UBYTE   Format;
+  ///
+  /// Variable region healthy state.
+  ///
+  UBYTE   State;
+  UINT16  Reserved;
+  UINT32  Reserved1;
+} VARIABLE_STORE_HEADER;
+
+
+///
+/// Single Variable Data Header Structure.
+///
+typedef struct {
+  ///
+  /// Variable Data Start Flag.
+  ///
+  UINT16      StartId;
+  ///
+  /// Variable State defined above.
+  ///
+  UBYTE       State;
+  UBYTE       Reserved;
+  ///
+  /// Attributes of variable defined in UEFI specification.
+  ///
+  UINT32      Attributes;
+  ///
+  /// Size of variable null-terminated Unicode string name.
+  ///
+  UINT32      NameSize;
+  ///
+  /// Size of the variable data without this header.
+  ///
+  UINT32      DataSize;
+  ///
+  /// A unique identifier for the vendor that produces and consumes this varaible.
+  ///
+  EFI_GUID    VendorGuid;
+} VARIABLE_HEADER;
+
+///
+/// Variable data start flag.
+///
+#define VARIABLE_DATA                     0x55AA
+
+///
+/// Alignment of Variable Data Header in Variable Store region.
+///
+#define HEADER_ALIGNMENT  4
+
+char
+GetNextVariable (
+  )
+{
+  typedef struct {
+    VARIABLE_HEADER    VariableHeader;
+    wchar_t Name[VariableHeader.NameSize / 2] <bgcolor=cLtRed>;
+    UCHAR   Data[VariableHeader.DataSize];
+    if(((startof(Data) + VariableHeader.DataSize) % HEADER_ALIGNMENT) != 0) {
+        UCHAR   Align[HEADER_ALIGNMENT - ((startof(Data) + VariableHeader.DataSize) % HEADER_ALIGNMENT)];
+    }
+  } VARIABLE;
+  
+  VARIABLE Variable;
+  if (Variable.VariableHeader.StartId != VARIABLE_DATA) {
+    return 0;
+  }
+
+  return 1;
+}
+
+//--------------------------------------------------------------------------------------------------------
+//Code
+LittleEndian();
+Printf("Parse UEFI variables Begin.\n");
+VARIABLE_STORE_HEADER VariableStoreHeader;
+
+while(GetNextVariable() == 1) { }
